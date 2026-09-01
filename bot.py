@@ -14,11 +14,13 @@ ADMIN_ID = '6404389665'          # အဓိက Admin
 AUTH_FILE = "auth_list.json"     # Key စာရင်း
 RESULT_FILE = "result.json"      # Success Code စာရင်း
 SELLERS_FILE = "sellers.json"    # Seller စာရင်း
-PROXY_FILE = "proxy.txt"         # Proxy စာရင်းဖိုင်
+PROXY_FILE = "proxy.txt"         # Proxy စာရင်းဖိုင်[cite: 1]
 ADMIN_CONTACT = "@mrtantawmoe"       # Admin ဆက်သွယ်ရန် Username
 
 # Proxies List Loaded from proxy.txt
 PROXIES = []
+_proxy_index = 0
+_proxy_lock = asyncio.Lock()
 # ---------------------------------------------------------
 
 bot = AsyncTeleBot(BOT_TOKEN)
@@ -47,9 +49,9 @@ result_lock = asyncio.Lock()
 sellers_lock = asyncio.Lock()
 SUCCESS_CODE = asyncio.Queue()
 
-# Helper to load proxies from proxy.txt
+# Helper to load proxies from proxy.txt (Sequential / Fallback Rotation)
 async def load_proxies():
-    global PROXIES
+    global PROXIES, _proxy_index
     try:
         if os.path.exists(PROXY_FILE):
             async with aiofiles.open(PROXY_FILE, 'r') as f:
@@ -68,13 +70,18 @@ async def load_proxies():
                 "http://ejzmwgnm:ns6t3k305e72@191.96.254.138:6185/",
                 "http://ejzmwgnm:ns6t3k305e72@31.58.9.4:6077/"
             ]
+        _proxy_index = 0
     except Exception as e:
         print(f"Error loading proxy.txt: {e}")
 
-def get_random_proxy():
+async def get_next_proxy():
+    global _proxy_index
     if not PROXIES:
         return None
-    return random.choice(PROXIES)
+    async with _proxy_lock:
+        proxy = PROXIES[_proxy_index % len(PROXIES)]
+        _proxy_index = (_proxy_index + 1) % len(PROXIES)
+        return proxy
 
 # ---------- Load / Save Functions ----------
 async def load_auth_list():
@@ -563,7 +570,8 @@ async def check_session_url(session_url):
         'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%80%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
     }
     try:
-        async with session.get(session_url, allow_redirects=True, headers=headers, proxy=get_random_proxy()) as response:
+        proxy_to_use = await get_next_proxy()
+        async with session.get(session_url, allow_redirects=True, headers=headers, proxy=proxy_to_use) as response:
             final_url = str(response.url)
             if "sessionId" in final_url:
                 return True
@@ -715,7 +723,8 @@ async def check_code_status(session_url, code):
                 "user-agent": "Mozilla/5.0 (Linux; Android 12; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
             }
             try:
-                async with task_session.post(post_url, json=data, headers=headers, proxy=get_random_proxy()) as req:
+                proxy_to_use = await get_next_proxy()
+                async with task_session.post(post_url, json=data, headers=headers, proxy=proxy_to_use) as req:
                     response = await req.text()
                     if 'logonUrl' in response:
                         return "success"
@@ -1005,7 +1014,8 @@ async def get_session_id(session, session_url, previous_session_id=None):
         'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%80%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
     }
     try:
-        async with session.get(session_url, headers=headers, allow_redirects=True, proxy=get_random_proxy()) as req:
+        proxy_to_use = await get_next_proxy()
+        async with session.get(session_url, headers=headers, allow_redirects=True, proxy=proxy_to_use) as req:
             response = str(req.url)
             session_id = re.search(r"[?&]sessionId=([a-zA-Z0-9]+)", response)
             if session_id:
@@ -1089,7 +1099,8 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
                 "user-agent": "Mozilla/5.0 (Linux; Android 12; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
             }
             try:
-                async with task_session.post(post_url, json=data, headers=headers, proxy=get_random_proxy()) as req:
+                proxy_to_use = await get_next_proxy()
+                async with task_session.post(post_url, json=data, headers=headers, proxy=proxy_to_use) as req:
                     response = await req.text()
                     resp_json = json.loads(response)
                     print(f"[voucher] code={code} attempt={attempt+1} status={req.status} resp={resp_json}")
@@ -1205,7 +1216,8 @@ async def Captcha_Image(session, session_id):
         'sessionId': session_id,
         '_t': str(time.time()),
     }
-    async with session.get('https://portal-as.ruijienetworks.com/api/auth/captcha/image', params=params, headers=headers, proxy=get_random_proxy()) as req:
+    proxy_to_use = await get_next_proxy()
+    async with session.get('https://portal-as.ruijienetworks.com/api/auth/captcha/image', params=params, headers=headers, proxy=proxy_to_use) as req:
         return await req.read()
 
 async def Varify_Captcha(session, session_id, text):
@@ -1228,7 +1240,8 @@ async def Varify_Captcha(session, session_id, text):
         'sessionId': session_id,
         'authCode': text,
     }
-    async with session.post('https://portal-as.ruijienetworks.com/api/auth/captcha/verify', headers=headers, json=json_data, proxy=get_random_proxy()) as req:
+    proxy_to_use = await get_next_proxy()
+    async with session.post('https://portal-as.ruijienetworks.com/api/auth/captcha/verify', headers=headers, json=json_data, proxy=proxy_to_use) as req:
         data = await req.json()
         print(f"[Varify_Captcha] status={req.status} authCode={text} response={data}")
         if data.get("success") == True:
@@ -1241,21 +1254,20 @@ async def start_polling():
     backoff = 5
     while True:
         try:
-            # Explicitly loop through proxies if polling errors occur
             if PROXIES:
-                asyncio_helper.proxy = get_random_proxy()
+                asyncio_helper.proxy = await get_next_proxy()
             await bot.infinity_polling(timeout=20, request_timeout=20)
             return
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             print(f"Polling connection error: {e}. Reconnecting in {backoff}s...")
             if PROXIES:
-                asyncio_helper.proxy = get_random_proxy()  # Rotate proxy on error
+                asyncio_helper.proxy = await get_next_proxy()
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 60)
         except Exception as e:
             print(f"Unexpected polling error: {e}. Reconnecting in {backoff}s...")
             if PROXIES:
-                asyncio_helper.proxy = get_random_proxy()
+                asyncio_helper.proxy = await get_next_proxy()
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 60)
 
@@ -1265,7 +1277,7 @@ async def main():
     
     # Telegram API အတွက် proxy.txt ထဲမှ Proxy တစ်ခုကို သုံးရန်ချိတ်ဆက်ခြင်း
     if PROXIES:
-        asyncio_helper.proxy = get_random_proxy()
+        asyncio_helper.proxy = await get_next_proxy()
         print(f"Telegram using proxy: {asyncio_helper.proxy}")
 
     await load_auth_list()
