@@ -1108,19 +1108,24 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
             except Exception as e:
                 print(f"Limited Message Error: {e}")
 
-_ocr = ddddocr.DdddOcr(show_ad=False)
-
+# ----------------- OCR FIX FOR RENDER -----------------
 def _ocr_sync(image_bytes):
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img is None:
+    try:
+        # OCR instance ကို function ထဲတွင် Local အနေဖြင့် သုံးခြင်းက Render တွင် memory crash / thread conflict ကို ကာကွယ်ပေးသည်
+        ocr_engine = ddddocr.DdddOcr(show_ad=False)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return None
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (3, 3), 0)
+        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _, buffer = cv2.imencode('.png', thresh)
+        result = ocr_engine.classification(buffer.tobytes())
+        return result.upper()
+    except Exception as e:
+        print(f"[OCR Error]: {e}")
         return None
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (3, 3), 0)
-    _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    _, buffer = cv2.imencode('.png', thresh)
-    result = _ocr.classification(buffer.tobytes())
-    return result.upper()
 
 async def Captcha_Text(image_bytes):
     return await asyncio.to_thread(_ocr_sync, image_bytes)
