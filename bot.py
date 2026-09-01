@@ -873,7 +873,7 @@ def format_progress(checked, total, speed, found, retry):
             f"🔄Retry : {retry}\n"
             f"📊Status : running\n")
 
-BATCH_SIZE = 2000
+BATCH_SIZE = 100
 
 async def run_bruteforce(mode, chat_id, session_url, scan_id, message=None, progress_msg=None):
     try:
