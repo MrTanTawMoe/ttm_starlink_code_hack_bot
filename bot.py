@@ -13,21 +13,11 @@ ADMIN_ID = '6404389665'          # အဓိက Admin
 AUTH_FILE = "auth_list.json"     # Key စာရင်း
 RESULT_FILE = "result.json"      # Success Code စာရင်း
 SELLERS_FILE = "sellers.json"    # Seller စာရင်း
+PROXY_FILE = "proxy.txt"         # Proxy စာရင်းဖိုင်
 ADMIN_CONTACT = "@mrtantawmoe"       # Admin ဆက်သွယ်ရန် Username
 
-# Proxies List for Rotation
-PROXIES = [
-    "http://ejzmwgnm:ns6t3k305e72@31.59.20.176:6754/",
-    "http://ejzmwgnm:ns6t3k305e72@45.38.107.97:6014/",
-    "http://ejzmwgnm:ns6t3k305e72@198.105.121.200:6462/",
-    "http://ejzmwgnm:ns6t3k305e72@64.137.96.74:6641/",
-    "http://ejzmwgnm:ns6t3k305e72@198.23.243.226:6361/",
-    "http://ejzmwgnm:ns6t3k305e72@38.154.185.97:6370/",
-    "http://ejzmwgnm:ns6t3k305e72@84.247.60.125:6095/",
-    "http://ejzmwgnm:ns6t3k305e72@142.111.67.146:5611/",
-    "http://ejzmwgnm:ns6t3k305e72@191.96.254.138:6185/",
-    "http://ejzmwgnm:ns6t3k305e72@31.58.9.4:6077/"
-]
+# Proxies List Loaded from proxy.txt
+PROXIES = []
 # ---------------------------------------------------------
 
 bot = AsyncTeleBot(BOT_TOKEN)
@@ -41,7 +31,7 @@ limited_texts = {}
 captcha_state = {}
 session = None
 _connector = None
-CONCURRENCY = 500         # မြန်လွန်းရင် block ခံရနိုင်လို့ လျှော့ထားတယ်
+CONCURRENCY = 500         
 _voucher_sem = None
 _start_time = time.monotonic()
 found_count = {}
@@ -56,8 +46,33 @@ result_lock = asyncio.Lock()
 sellers_lock = asyncio.Lock()
 SUCCESS_CODE = asyncio.Queue()
 
-# Helper to get a proxy from the list
+# Helper to load proxies from proxy.txt
+async def load_proxies():
+    global PROXIES
+    try:
+        if os.path.exists(PROXY_FILE):
+            async with aiofiles.open(PROXY_FILE, 'r') as f:
+                content = await f.read()
+                PROXIES = [line.strip() for line in content.splitlines() if line.strip() and not line.strip().startswith("#")]
+        if not PROXIES:
+            PROXIES = [
+                "http://ejzmwgnm:ns6t3k305e72@31.59.20.176:6754/",
+                "http://ejzmwgnm:ns6t3k305e72@45.38.107.97:6014/",
+                "http://ejzmwgnm:ns6t3k305e72@198.105.121.200:6462/",
+                "http://ejzmwgnm:ns6t3k305e72@64.137.96.74:6641/",
+                "http://ejzmwgnm:ns6t3k305e72@198.23.243.226:6361/",
+                "http://ejzmwgnm:ns6t3k305e72@38.154.185.97:6370/",
+                "http://ejzmwgnm:ns6t3k305e72@84.247.60.125:6095/",
+                "http://ejzmwgnm:ns6t3k305e72@142.111.67.146:5611/",
+                "http://ejzmwgnm:ns6t3k305e72@191.96.254.138:6185/",
+                "http://ejzmwgnm:ns6t3k305e72@31.58.9.4:6077/"
+            ]
+    except Exception as e:
+        print(f"Error loading proxy.txt: {e}")
+
 def get_random_proxy():
+    if not PROXIES:
+        return None
     return random.choice(PROXIES)
 
 # ---------- Load / Save Functions ----------
@@ -235,7 +250,8 @@ async def check_proxy_command(message):
         await bot.reply_to(message, unauthorized_message())
         return
     
-    status_msg = await bot.reply_to(message, "Checking proxies status...")
+    await load_proxies()
+    status_msg = await bot.reply_to(message, f"Checking proxies status ({len(PROXIES)} proxies loaded)...")
     results = []
     
     for idx, proxy in enumerate(PROXIES, 1):
@@ -253,7 +269,11 @@ async def check_proxy_command(message):
             results.append(f"Proxy {idx}: ❌ Error")
             
     final_report = "🌐 **Proxy Check Results**[cite: 1]:\n\n" + "\n".join(results)
-    await bot.edit_message_text(chat_id=message.chat.id, message_id=status_msg.message_id, text=final_report, parse_mode="Markdown")
+    if len(final_report) > 4096:
+        for i in range(0, len(final_report), 4096):
+            await bot.send_message(message.chat.id, final_report[i:i+4096], parse_mode="Markdown")
+    else:
+        await bot.edit_message_text(chat_id=message.chat.id, message_id=status_msg.message_id, text=final_report, parse_mode="Markdown")
 
 @bot.message_handler(commands=['key'])
 async def handle_key(message):
@@ -539,7 +559,7 @@ async def check_session_url(session_url):
         'sec-fetch-site': 'same-origin',
         'upgrade-insecure-requests': '1',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0',
-        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
+        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%80%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
     }
     try:
         async with session.get(session_url, allow_redirects=True, headers=headers, proxy=get_random_proxy()) as response:
@@ -981,7 +1001,7 @@ async def get_session_id(session, session_url, previous_session_id=None):
         'sec-fetch-site': 'same-origin',
         'upgrade-insecure-requests': '1',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0',
-        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
+        'cookie': 'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E8%87%AA%E7%84%B6%E6%90%9C%E7%B4%A2%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%80%B0%E5%80%BC%22%2C%22%24latest_referrer%22%3A%22https%3A%2F%2Fgemini.google.com%2F%22%7D%2C%22identities%22%3A%22eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTllMGRkYmQ5ZjIxNTItMGRmOTQxZjJlZmM2YjA4LTRjNjU3YjU4LTEzMjcxMDQtMTllMGRkYmQ5ZjNhNjAifQ%3D%3D%22%2C%22history_login_id%22%3A%7B%22name%22%3A%22%22%2C%22value%22%3A%22%22%7D%2C%22%24device_id%22%3A%2219e0ddbd9f2152-0df941f2efc6b08-4c657b58-1327104-19e0ddbd9f3a60%22%7D'
     }
     try:
         async with session.get(session_url, headers=headers, allow_redirects=True, proxy=get_random_proxy()) as req:
@@ -1233,6 +1253,7 @@ async def start_polling():
 
 async def main():
     global session, _connector
+    await load_proxies()
     await load_auth_list()
     await load_result()
     await load_sellers()
