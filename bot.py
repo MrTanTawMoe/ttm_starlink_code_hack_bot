@@ -1,5 +1,6 @@
 import telebot, asyncio, aiohttp, json, base64, random, re, os, string, time, uuid, aiofiles
 from telebot.async_telebot import AsyncTeleBot
+from telebot import asyncio_helper
 from aiohttp import web
 import cv2
 import ddddocr
@@ -1240,20 +1241,33 @@ async def start_polling():
     backoff = 5
     while True:
         try:
+            # Explicitly loop through proxies if polling errors occur
+            if PROXIES:
+                asyncio_helper.proxy = get_random_proxy()
             await bot.infinity_polling(timeout=20, request_timeout=20)
             return
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             print(f"Polling connection error: {e}. Reconnecting in {backoff}s...")
+            if PROXIES:
+                asyncio_helper.proxy = get_random_proxy()  # Rotate proxy on error
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 60)
         except Exception as e:
             print(f"Unexpected polling error: {e}. Reconnecting in {backoff}s...")
+            if PROXIES:
+                asyncio_helper.proxy = get_random_proxy()
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 60)
 
 async def main():
     global session, _connector
     await load_proxies()
+    
+    # Telegram API အတွက် proxy.txt ထဲမှ Proxy တစ်ခုကို သုံးရန်ချိတ်ဆက်ခြင်း
+    if PROXIES:
+        asyncio_helper.proxy = get_random_proxy()
+        print(f"Telegram using proxy: {asyncio_helper.proxy}")
+
     await load_auth_list()
     await load_result()
     await load_sellers()
