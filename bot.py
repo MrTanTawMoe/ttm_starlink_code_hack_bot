@@ -34,7 +34,7 @@ limited_texts = {}
 captcha_state = {}
 session = None
 _connector = None
-CONCURRENCY = 3         
+CONCURRENCY = 1         
 _voucher_sem = None
 _start_time = time.monotonic()
 found_count = {}
@@ -873,7 +873,7 @@ def format_progress(checked, total, speed, found, retry):
             f"🔄Retry : {retry}\n"
             f"📊Status : running\n")
 
-BATCH_SIZE = 100
+BATCH_SIZE = 10
 
 async def run_bruteforce(mode, chat_id, session_url, scan_id, message=None, progress_msg=None):
     try:
